@@ -126,15 +126,10 @@ static inline void mdss_mdp_intr_done(int index)
 irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 {
 	struct mdss_data_type *mdata = ptr;
-	u32 isr, hist_isr, hist_mask;
-	u32 mask = 0;
+	u32 isr, mask, hist_isr, hist_mask;
 
 
 	isr = MDSS_MDP_REG_READ(MDSS_MDP_REG_INTR_STATUS);
-
-#if 0//defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
-	xlog(__func__, 0, isr, mask, 0, 0, 0);
-#endif
 
 	if (isr == 0)
 		goto mdp_isr_done;
@@ -507,7 +502,7 @@ int mdss_mdp_put_img(struct mdss_mdp_img_data *data)
 			pr_err("invalid ion client\n");
 			return -ENOMEM;
 		} else {
-			if (is_mdss_iommu_attached()) {
+			if (data->mapped) {
 				int domain;
 				if (data->flags & MDP_SECURE_OVERLAY_SESSION)
 					domain = MDSS_IOMMU_DOMAIN_SECURE;
@@ -520,6 +515,7 @@ int mdss_mdp_put_img(struct mdss_mdp_img_data *data)
 					msm_ion_unsecure_buffer(iclient,
 							data->srcp_ihdl);
 				}
+				data->mapped = false;
 			}
 			ion_free(iclient, data->srcp_ihdl);
 			data->srcp_ihdl = NULL;
@@ -598,6 +594,7 @@ int mdss_mdp_get_img(struct msmfb_data *img, struct mdss_mdp_img_data *data)
 			if (ret && (domain == MDSS_IOMMU_DOMAIN_SECURE))
 				msm_ion_unsecure_buffer(iclient,
 						data->srcp_ihdl);
+			data->mapped = true;
 		} else {
 			ret = ion_phys(iclient, data->srcp_ihdl, start,
 				       (size_t *) len);

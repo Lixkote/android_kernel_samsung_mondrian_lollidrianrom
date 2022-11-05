@@ -542,31 +542,6 @@ unsigned long mdp3_get_clk_rate(u32 clk_idx)
 	return clk_rate;
 }
 
-#if defined(CONFIG_FB_MSM_MDSS_DSI_DBG)
-static inline struct clk *mdp3_get_clk(u32 clk_idx)
-{
-	if (clk_idx < MDP3_MAX_CLK)
-		return mdp3_res->clocks[clk_idx];
-	return NULL;
-}
-
-void mdp3_dump_clk(void)
-{
-	u8 clk_idx = 0;
-	struct clk *clk = NULL;
-
-	pr_info(" ============ %s + ============\n", __func__);
-
-	for(clk_idx = MDP3_CLK_AHB ; clk_idx < MDP3_MAX_CLK ;clk_idx++)
-	{
-		clk = mdp3_get_clk(clk_idx);
-		clock_debug_print_clock2(clk);
-	}
-
-	pr_info(" ============ %s - ============\n", __func__);
-}
-#endif
-
 static int mdp3_clk_register(char *clk_name, int clk_idx)
 {
 	struct clk *tmp;
@@ -763,11 +738,9 @@ int mdp3_iommu_attach(int context)
 	if (context >= MDP3_IOMMU_CTX_MAX)
 		return -EINVAL;
 
-	mutex_lock(&mdp3_res->iommu_lock);
 	context_map = mdp3_res->iommu_contexts + context;
 	if (context_map->attached) {
 		pr_warn("mdp iommu already attached\n");
-		mutex_unlock(&mdp3_res->iommu_lock);
 		return 0;
 	}
 
@@ -776,7 +749,6 @@ int mdp3_iommu_attach(int context)
 	iommu_attach_device(domain_map->domain, context_map->ctx);
 
 	context_map->attached = true;
-	mutex_unlock(&mdp3_res->iommu_lock);
 	return 0;
 }
 
@@ -789,11 +761,9 @@ int mdp3_iommu_dettach(int context)
 		context >= MDP3_IOMMU_CTX_MAX)
 		return -EINVAL;
 
-	mutex_lock(&mdp3_res->iommu_lock);
 	context_map = mdp3_res->iommu_contexts + context;
 	if (!context_map->attached) {
 		pr_warn("mdp iommu not attached\n");
-		mutex_unlock(&mdp3_res->iommu_lock);
 		return 0;
 	}
 
@@ -801,7 +771,6 @@ int mdp3_iommu_dettach(int context)
 	iommu_detach_device(domain_map->domain, context_map->ctx);
 	context_map->attached = false;
 
-	mutex_unlock(&mdp3_res->iommu_lock);
 	return 0;
 }
 
@@ -990,8 +959,15 @@ static int mdp3_res_init(void)
 
 static void mdp3_res_deinit(void)
 {
+	int i;
+
 	mdp3_bus_scale_unregister();
-	mdp3_iommu_dettach(MDP3_IOMMU_CTX_DMA_0);
+
+	mutex_lock(&mdp3_res->iommu_lock);
+	for (i = 0; i < MDP3_IOMMU_CTX_MAX; i++)
+		mdp3_iommu_dettach(i);
+	mutex_unlock(&mdp3_res->iommu_lock);
+
 	mdp3_iommu_deinit();
 
 	if (!IS_ERR_OR_NULL(mdp3_res->ion_client))
@@ -1745,12 +1721,14 @@ int mdp3_iommu_enable(int client)
 {
 	int rc;
 
+	mutex_lock(&mdp3_res->iommu_lock);
 	if (client == MDP3_CLIENT_DMA_P) {
 		rc = mdp3_iommu_attach(MDP3_IOMMU_CTX_DMA_0);
 	} else {
 		rc = mdp3_iommu_attach(MDP3_IOMMU_CTX_PPP_0);
 		rc |= mdp3_iommu_attach(MDP3_IOMMU_CTX_PPP_1);
 	}
+	mutex_unlock(&mdp3_res->iommu_lock);
 
 	return rc;
 }
@@ -1759,12 +1737,14 @@ int mdp3_iommu_disable(int client)
 {
 	int rc;
 
+	mutex_lock(&mdp3_res->iommu_lock);
 	if (client == MDP3_CLIENT_DMA_P) {
 		rc = mdp3_iommu_dettach(MDP3_IOMMU_CTX_DMA_0);
 	} else {
 		rc = mdp3_iommu_dettach(MDP3_IOMMU_CTX_PPP_0);
 		rc |= mdp3_iommu_dettach(MDP3_IOMMU_CTX_PPP_1);
 	}
+	mutex_unlock(&mdp3_res->iommu_lock);
 
 	return rc;
 }

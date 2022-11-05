@@ -615,9 +615,7 @@ int mdss_mdp_wb_kickoff(struct msm_fb_data_type *mfd)
 	struct mdss_mdp_ctl *ctl = mfd_to_ctl(mfd);
 	struct mdss_mdp_wb_data *node = NULL;
 	int ret = 0;
-	struct mdss_mdp_writeback_arg wb_args = {
-		.data = NULL,
-	};
+	struct mdss_mdp_writeback_arg wb_args;
 
 	if (!ctl->power_on)
 		return 0;
