@@ -527,9 +527,14 @@ static irqreturn_t msm_cpp_irq(int irq_num, void *data)
 	if (irq_status & 0x8) {
 		tx_level = msm_camera_io_r(cpp_dev->base +
 			MSM_CPP_MICRO_FIFO_TX_STAT) >> 2;
-		for (i = 0; i < tx_level; i++) {
-			tx_fifo[i] = msm_camera_io_r(cpp_dev->base +
-				MSM_CPP_MICRO_FIFO_TX_DATA);
+		if (tx_level < MSM_CPP_TX_FIFO_LEVEL) {
+			for (i = 0; i < tx_level; i++) {
+				tx_fifo[i] = msm_camera_io_r(cpp_dev->base +
+					MSM_CPP_MICRO_FIFO_TX_DATA);
+			}
+		} else {
+			pr_err("Fatal invalid tx level %d", tx_level);
+			goto err;
 		}
 		spin_lock_irqsave(&cpp_dev->tasklet_lock, flags);
 		queue_cmd = &cpp_dev->tasklet_queue_cmd[cpp_dev->taskletq_idx];
@@ -583,6 +588,7 @@ static irqreturn_t msm_cpp_irq(int irq_num, void *data)
 		pr_err("%s: DEBUG_R1: 0x%x\n", __func__,
 			msm_camera_io_r(cpp_dev->cpp_hw_base + 0x8C));
 	}
+err:
 	msm_camera_io_w(irq_status, cpp_dev->base + MSM_CPP_MICRO_IRQGEN_CLR);
 	return IRQ_HANDLED;
 }
@@ -724,9 +730,9 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 	  clk_put(cpp_dev->cpp_clk[7]);
 	  goto remap_failed;
 	}
-	
+
 	usleep_range(10000, 12000);
-	
+
 	rc = clk_reset(cpp_dev->cpp_clk[7], CLK_RESET_DEASSERT);
 	  if (rc) {
 		pr_err("%s:micro_iface_clk assert failed\n", __func__);
@@ -778,7 +784,7 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 			goto req_irq_fail;
 		}
 		cpp_dev->buf_mgr_subdev = msm_buf_mngr_get_subdev();
-		
+
 		rc = msm_cpp_buffer_ops(cpp_dev,VIDIOC_MSM_BUF_MNGR_INIT, NULL);
 		if (rc < 0) {
 			pr_err("buf mngr init failed\n");
@@ -1295,7 +1301,7 @@ static void msm_cpp_do_timeout_work(struct work_struct *work)
 				cpp_timers[set_timer_idx].data.cpp_dev->base);
 	}
 	cpp_timers[1 - set_timer_idx].data.cpp_dev->timeout_trial_cnt++;
-	mutex_unlock(&cpp_timers[0].data.cpp_dev->mutex);	
+	mutex_unlock(&cpp_timers[0].data.cpp_dev->mutex);
 }
 
 void cpp_timer_callback(unsigned long data)
@@ -1469,7 +1475,7 @@ static int msm_cpp_cfg(struct cpp_device *cpp_dev,
 		/* set duplicate enable bit */
 		cpp_frame_msg[5] |= 0x1;
 	}
-  
+
 	num_stripes = ((cpp_frame_msg[12] >> 20) & 0x3FF) +
 		((cpp_frame_msg[12] >> 10) & 0x3FF) +
 		(cpp_frame_msg[12] & 0x3FF);
@@ -1765,8 +1771,7 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 			return -EINVAL;
 		}
 
-		if ((ioctl_ptr->len == 0) ||
-			(ioctl_ptr->len > sizeof(uint32_t))) {
+		if (ioctl_ptr->len != sizeof(uint32_t)) {
 			pr_err("ioctl_ptr->len is wrong : %d\n", ioctl_ptr->len);
 			mutex_unlock(&cpp_dev->mutex);
 			return -EINVAL;
@@ -1859,7 +1864,7 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 		kfree(event_qcmd);
 		break;
 	}
-	
+
 	case VIDIOC_MSM_CPP_SET_CLOCK: {
 		long clock_rate = 0;
 		if (ioctl_ptr->len == 0 || (ioctl_ptr->len > sizeof(long))) {
