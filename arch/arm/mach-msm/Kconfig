@@ -171,7 +171,6 @@ config ARCH_MSM8960
 	select MSM_RUN_QUEUE_STATS
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
-	select MSM_ULTRASOUND_A
 	select MSM_IOMMU_GPU_SYNC
 	select GENERIC_TIME_VSYSCALL
 	select USE_USER_ACCESSIBLE_TIMERS
@@ -204,7 +203,6 @@ config ARCH_MSM8930
 	select DONT_MAP_HOLE_AFTER_MEMBANK0
 	select MSM_REMOTE_SPINLOCK_SFPB
 	select ARCH_HAS_HOLES_MEMORYMODEL
-	select MSM_ULTRASOUND_A
 	select MULTI_IRQ_HANDLER
 	select MSM_PM8X60 if PM
 	select HOLES_IN_ZONE if SPARSEMEM
@@ -243,7 +241,6 @@ config ARCH_APQ8064
 	select ARCH_SUPPORTS_MSI
 	select ARM_HAS_SG_CHAIN
 	select MSM_KRAIT_WFE_FIXUP
-	select MSM_ULTRASOUND_A
 	select MSM_IOMMU_GPU_SYNC
 	select GENERIC_TIME_VSYSCALL
 	select USE_USER_ACCESSIBLE_TIMERS
@@ -282,7 +279,6 @@ config ARCH_MSM8974
 	select MEMORY_HOLE_CARVEOUT
 	select MSM_RPM_STATS_LOG
 	select QMI_ENCDEC
-	select MSM_ULTRASOUND_B
 	select MSM_RPM_LOG
 	select ARCH_WANT_KMAP_ATOMIC_FLUSH
 	select KRAIT_REGULATOR
@@ -4708,6 +4704,12 @@ config MSM_CPU_PWRCTL
 	  stand alone power collapse operation. Selecting this option
 	  ensures that they are always off.
 
+config MACH_TABPRO
+	bool "Support for Samsung tabpro family of devices"
+	help
+	  Support for common elements between mondrianwifi, mondrian3g,
+	  mondrianlte, picassolte and viennalte.
+
 config SEC_THERMISTOR
         bool "Use external thermistor near AP for checking temprature"
         default n
@@ -4779,6 +4781,7 @@ config SWITCH_DUAL_MODEM
 
 config TIMA_RKP
        bool "Enable RKP (Realtime Kernel Protection) TIMA feature"
+       depends on TIMA
        default n
 
 config TIMA_RKP_30
@@ -4849,6 +4852,7 @@ config TIMA
 
 config TIMA_LKMAUTH
        bool "Enable LKM authentication TIMA feature"
+       depends on TIMA && MODULES
        default n
        help
          TIMA authenticates loaded kernel modules. Disable it if you don't
@@ -4864,6 +4868,7 @@ config TIMA_LKMAUTH_CODE_PROT
 
 config TIMA_TEST_INFRA
        tristate "Testing infrastructure for TIMA"
+       depends on TIMA
        default n
        help
          Kernel bits of the TIMA test infrastructure
@@ -4923,3 +4928,11 @@ config SEC_SMART_MGR_RUNQUEUE_AVG
 	help
 	  Support for Smart MGR function.
 endif
+
+config KERNEL_TEXT_MPU_PROT
+        bool "Enable xpu protection of kernel r/o sections"
+        help
+          Enables xpu protection of kernel code and read-only data
+          sections early in boot. Read access is permitted to
+          all masters; Write access is only permited to the
+          secure world.
