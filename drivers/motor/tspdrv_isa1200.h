@@ -34,10 +34,6 @@
 #define MODULE_NAME                         "tspdrv"
 #define TSPDRV                              "/dev/"MODULE_NAME
 #define TSPDRV_MAGIC_NUMBER                 0x494D4D52
-#if defined(CONFIG_VIBRATOR_UPDATE)
-#define TSPDRV_IOCTL_GROUP                  0x52
-#define TSPDRV_SET_MAGIC_NUMBER             _IO(TSPDRV_IOCTL_GROUP, 2)
-#endif
 #define TSPDRV_STOP_KERNEL_TIMER            _IO(TSPDRV_MAGIC_NUMBER & 0xFF, 1)
 /*
  ** Obsolete IOCTL command
@@ -86,11 +82,6 @@ typedef struct {
 
 #define GP_CLK_M_DEFAULT			2
 
-#if defined (CONFIG_MACH_MATISSELTE_ATT)
-#define GP_CLK_N_DEFAULT			122
-#define GP_CLK_D_DEFAULT			61	/* 50% duty cycle */
-
-#else
 #if defined CONFIG_MACH_MATISSE3G_OPEN || defined CONFIG_SEC_MATISSELTE_COMMON
 #define GP_CLK_N_DEFAULT			99
 #define GP_CLK_D_DEFAULT			44	/* 50% duty cycle */
@@ -99,9 +90,7 @@ typedef struct {
 #define GP_CLK_D_DEFAULT                       47      /* 50% duty cycle */
 #endif
 
-#endif//CONFIG_MACH_MATISSELTE_ATT
-
-#define IMM_PWM_MULTIPLIER		    GP_CLK_N_DEFAULT	/* Must be integer */
+#define IMM_PWM_MULTIPLIER		    93	/* Must be integer */
 /*
  * ** Global variables for LRA PWM M,N and D values.
  * */

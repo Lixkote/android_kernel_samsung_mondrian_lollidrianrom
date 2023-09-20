@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export ARCH=arm
-export CROSS_COMPILE=/home/lixkote/kernel/build/toolchains/uber-arm-eabi-4.8/bin/arm-eabi-
+export CROSS_COMPILE=/home/lixkote/Documents/GitHub/android_kernel_samsung_mondrian_lollidrianrom/toolchains/uber-arm-eabi-4.8/bin/arm-eabi-
 
 mkdir output
 
